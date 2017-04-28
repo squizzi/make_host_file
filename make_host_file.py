@@ -64,11 +64,12 @@ def generate_host_file(nametype, privaddrs=private_ips, pubaddrs=public_ips,
     # nametype, followed by the private IP.
     length = len(privaddrs)
     count = list(range(length))
+    d = dict(zip(count, privaddrs))
     logging.info('Generating a host file for remote hosts')
-    for each in privaddrs, count:
-        logging.debug('appending host {0}{1} {2}'.format(nametype, count, each))
-        host_file_string = "{0}{1} {2}".format(nametype, count, each)
-        f = open("tmp_host_file", "w")
+    for key, value in d.iteritems():
+        logging.info('appending host {0}{1} {2}'.format(nametype, key, value))
+        host_file_string = "\n{0} {1}{2}".format(value, nametype, key)
+        f = open("tmp_host_file", "a+")
         f.write(host_file_string)
     f.close()
     # If make_local is set, also make a /etc/hosts file for the local host
@@ -79,11 +80,18 @@ file which contains public IP addresses')
         # list
         length = len(pubaddrs)
         count = list(range(length))
-        for each in pubaddrs, count:
-            logging.debug('appending host file to /etc/hosts on local machine')
-            host_file_string = "{0}{1} {2}".format(nametype, count, each)
+        d = dict(zip(count, privaddrs))
+        for key, value in d.iteritems():
+            logging.info('appending host file to /etc/hosts on local machine')
+            host_file_string = "\n{0} {1}{2}".format(value, nametype, key)
             f = open("/etc/hosts", "a+")
-            f.write(host_file_string)
+            try:
+                f.write(host_file_string)
+            except IOError:
+                logging.error('Permission denied.  To use make-local you must \
+have root!')
+                sys.exit(1)
+        f.close()
 
 """
 Copy the remote host files to each host
@@ -100,16 +108,19 @@ def copy_host_files(keyfile, pubaddrs=public_ips):
         scp.put("tmp_host_file", "/home/ubuntu/hosts")
         # Append the newly created hostfile into the existing hosts file on
         # each host
-        ssh.exec_command("sudo cat /home/ubuntu/hosts >> /etc/hosts")
+        ssh.exec_command("sudo bash -c 'cat /home/ubuntu/hosts >> /etc/hosts'")
+        # cleanup tmp file remotely
+        ssh.exec_command("rm -f /home/ubuntu/hosts")
     logging.info('All host files copied to remote hosts')
 
-def main():
-    # logging
-    logger = logging.getLogger(name=None)
-    logging.basicConfig(format='%(levelname)s: %(message)s',
-                        level=logging.DEBUG
-                        )
+"""
+Cleanup
+"""
+def cleanup_tmp(tmpfile='tmp_host_file'):
+    logging.info('Cleaning up temporary files')
+    os.remove(tmpfile)
 
+def main():
     # argument parsing
     global args
     parser = argparse.ArgumentParser(description='Generate and copy a host file \
@@ -137,8 +148,31 @@ def main():
                         help="Add entries to the hosts in your local \
                         /etc/hosts file (requires root) using the public IP's \
                         for each host.")
+    parser.add_argument("-D",
+                        "--debug",
+                        dest="debug",
+                        action="store_true",
+                        help="Enable debug logging.")
 
     args = parser.parse_args()
+
+    # logging
+    if args.debug == False:
+        logger = logging.getLogger(name=None)
+        logging.basicConfig(format='%(levelname)s: %(message)s',
+                            level=logging.INFO
+                            )
+    else:
+        logger = logging.getLogger(name=None)
+        logging.basicConfig(format='%(levelname)s: %(message)s',
+                            level=logging.DEBUG
+                            )
+
+    # Check for root early if make-local is used
+    if args.make_local == True:
+        if not os.geteuid() == 0:
+            logging.error('You must be root to use the make-local flag!')
+            sys.exit(1)
 
     # Generate host list
     host_list(args.env_file)
@@ -159,6 +193,9 @@ def main():
 
     # Copy remote hosts
     copy_host_files(args.ssh_identity_file)
+
+    # cleanup
+    cleanup_tmp()
 
     # Tell users we're done
     logging.info("All tasks complete.")
