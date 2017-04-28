@@ -63,7 +63,9 @@ def generate_host_file(nametype, privaddrs=private_ips, pubaddrs=public_ips,
     # Construct a string that generates a host file with the desired host
     # nametype, followed by the private IP.
     length = len(privaddrs)
-    count = list(range(length))
+    count = []
+    for each in list(range(length)):
+        count.append(each+1)
     d = dict(zip(count, privaddrs))
     logging.info('Generating a host file for remote hosts')
     for key, value in d.iteritems():
@@ -79,7 +81,9 @@ file which contains public IP addresses')
         # it should be the same, but will set the length/count to the public
         # list
         length = len(pubaddrs)
-        count = list(range(length))
+        count = []
+        for each in list(range(length)):
+            count.append(each+1)
         d = dict(zip(count, privaddrs))
         for key, value in d.iteritems():
             logging.info('appending host file to /etc/hosts on local machine')
