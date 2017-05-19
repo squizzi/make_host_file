@@ -59,13 +59,16 @@ def expand_homedir(env_file):
 Generate host files for train env, syntax will match that of the env.txt file
 """
 def generate_host_file(nametype, privaddrs=private_ips, pubaddrs=public_ips,
-                       make_local=False):
+                       make_local=False, no_zero=False):
     # Construct a string that generates a host file with the desired host
     # nametype, followed by the private IP.
     length = len(privaddrs)
     count = []
     for each in list(range(length)):
-        count.append(each)
+        if no_zero == True:
+            count.append(each+1)
+        else:
+            count.append(each)
     d = dict(zip(count, privaddrs))
     logging.info('Generating a host file for remote hosts')
     for key, value in d.iteritems():
@@ -83,7 +86,10 @@ file which contains public IP addresses')
         length = len(pubaddrs)
         count = []
         for each in list(range(length)):
-            count.append(each+1)
+            if no_zero == True:
+                count.append(each+1)
+            else:
+                count.append(each)
         d = dict(zip(count, pubaddrs))
         logging.info('appending host file to /etc/hosts on local machine')
         for key, value in d.iteritems():
@@ -152,6 +158,14 @@ def main():
                         help="Add entries to the hosts in your local \
                         /etc/hosts file (requires root) using the public IP's \
                         for each host.")
+    parser.add_argument("--no-zero",
+                        dest="no_zero",
+                        action="store_true",
+                        help="Do not start hostname count from 0, start from \
+                        1 instead.  For example, with --no-zero hosts will \
+                        be named 'docker1, docker2, etc.'  By default host \
+                        naming will follow the train.env naming convention \
+                        which is 'docker0, docker1, etc.'")
     parser.add_argument("-D",
                         "--debug",
                         dest="debug",
@@ -191,9 +205,9 @@ def main():
 
     # Generate a hosts file
     if args.make_local == True:
-        generate_host_file(nametype, make_local=True)
+        generate_host_file(nametype, make_local=True, no_zero=args.no_zero)
     else:
-        generate_host_file(nametype)
+        generate_host_file(nametype, no_zero=args.no_zero)
 
     # Copy remote hosts
     copy_host_files(args.ssh_identity_file)
