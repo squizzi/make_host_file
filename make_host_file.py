@@ -65,7 +65,7 @@ def generate_host_file(nametype, privaddrs=private_ips, pubaddrs=public_ips,
     length = len(privaddrs)
     count = []
     for each in list(range(length)):
-        count.append(each+1)
+        count.append(each)
     d = dict(zip(count, privaddrs))
     logging.info('Generating a host file for remote hosts')
     for key, value in d.iteritems():
