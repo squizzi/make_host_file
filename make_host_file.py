@@ -91,8 +91,10 @@ file which contains public IP addresses')
             else:
                 count.append(each)
         d = dict(zip(count, pubaddrs))
-        logging.info('appending host file to /etc/hosts on local machine')
         for key, value in d.iteritems():
+            logging.info('appending host locally {0}{1} {2}'.format(nametype,
+                                                                    key,
+                                                                    value))
             host_file_string = "\n{0} {1}{2}".format(value, nametype, key)
             f = open("/etc/hosts", "a+")
             try:
