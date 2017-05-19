@@ -36,6 +36,11 @@ optional arguments:
                         deployed environment.
   --make-local          Add entries to the hosts in your local /etc/hosts file
                         (requires root) using the public IP's for each host.
+  --no-zero             Do not start hostname count from 0, start from 1
+                        instead. For example, with --no-zero hosts will be
+                        named 'docker1, docker2, etc.' By default host naming
+                        will follow the train.env naming convention which is
+                        'docker0, docker1, etc.'
 required arguments:
   -i SSH_IDENTITY_FILE  Specify the location where your SSH identity file
                         resides for AWS (normally in your train directory).
