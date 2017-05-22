@@ -49,10 +49,8 @@ def get_nametype(env_file):
 """
 Expand ~ so that it correctly points to home directories
 """
-#FIXME: Correclty expand homedir path if ~ is used in argparse
 def expand_homedir(env_file):
-    homedir = os.path.expanduser('~')
-    full_env_path = homedir+env_file
+    full_env_path = os.path.expanduser(env_file)
     return full_env_path
 
 """
@@ -195,12 +193,14 @@ def main():
             sys.exit(1)
 
     # Generate host list
-    host_list(args.env_file)
+    env_file = expand_homedir(args.env_file)
+    host_list(env_file)
 
     # Get default nametype
     if args.nametype == None:
-        nametype = get_nametype(args.env_file)
+        nametype = get_nametype(env_file)
     else:
+        logging.info('-N detected, using user set nametype')
         nametype = args.nametype
     # announce the nametype we'll use
     logging.info("Will use name: {0}".format(nametype))
