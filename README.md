@@ -34,6 +34,10 @@ optional arguments:
   -h, --help            Show help
   -N NAMETYPE           Define a hostname to use to identify hosts in your
                         deployed environment.
+  -u USER, --user USER  Override the default user used to connect. Use this
+                        flag if you've deployed an environment that is not
+                        based on the 'docker' lab to override the default user
+                        AWS creates for login.
   --make-local          Add entries to the hosts in your local /etc/hosts file
                         (requires root) using the public IP's for each host.
   --no-zero             Do not start hostname count from 0, start from 1
