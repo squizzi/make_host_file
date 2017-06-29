@@ -106,21 +106,28 @@ have root!')
 """
 Copy the remote host files to each host
 """
-def copy_host_files(keyfile, pubaddrs=public_ips):
+def copy_host_files(keyfile, user, pubaddrs=public_ips):
     k = paramiko.RSAKey.from_private_key_file(keyfile)
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     logging.info('Copying host files to remote hosts')
+    # Use a specific user to connect
+    # This provides support for additional users outside of the docker lab 
+    logging.info('Using user {0} to connect'.format(user))
     for each in pubaddrs:
         logging.debug('copying host file to {0}'.format(each))
-        ssh.connect(each, username="ubuntu", pkey=k)
+        ssh.connect(
+                    each,
+                    username="{0}".format(user),
+                    pkey=k
+                    )
         scp = SCPClient(ssh.get_transport())
-        scp.put("tmp_host_file", "/home/ubuntu/hosts")
+        scp.put("tmp_host_file", "/home/{0}/hosts".format(user))
         # Append the newly created hostfile into the existing hosts file on
         # each host
-        ssh.exec_command("sudo bash -c 'cat /home/ubuntu/hosts >> /etc/hosts'")
+        ssh.exec_command("sudo bash -c 'cat /home/{0}/hosts >> /etc/hosts'".format(user))
         # cleanup tmp file remotely
-        ssh.exec_command("rm -f /home/ubuntu/hosts")
+        ssh.exec_command("rm -f /home/{0}/hosts".format(user))
     logging.info('All host files copied to remote hosts')
 
 """
@@ -152,6 +159,13 @@ def main():
                         file found inside of your train directory.  This is \
                         used to read IP's of the hosts.",
                         required=True)
+    parser.add_argument("-u",
+                        "--user",
+                        dest="user",
+                        help="Override the default user used to connect.  Use \
+                        this flag if you've deployed an environment that is \
+                        not based on the 'docker' lab to override the default \
+                        user AWS creates for login.")
     parser.add_argument("--make-local",
                         dest="make_local",
                         action="store_true",
@@ -171,6 +185,7 @@ def main():
                         dest="debug",
                         action="store_true",
                         help="Enable debug logging.")
+
 
     args = parser.parse_args()
 
@@ -196,6 +211,12 @@ def main():
     env_file = expand_homedir(args.env_file)
     host_list(env_file)
 
+    # If no user is given assume ubuntu, else set per flag
+    if args.user == None:
+        user = 'ubuntu'
+    else:
+        user = args.user
+
     # Get default nametype
     if args.nametype == None:
         nametype = get_nametype(env_file)
@@ -212,7 +233,7 @@ def main():
         generate_host_file(nametype, no_zero=args.no_zero)
 
     # Copy remote hosts
-    copy_host_files(args.ssh_identity_file)
+    copy_host_files(args.ssh_identity_file, user)
 
     # cleanup
     cleanup_tmp()
