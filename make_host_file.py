@@ -57,25 +57,28 @@ def expand_homedir(env_file):
 Generate host files for train env, syntax will match that of the env.txt file
 """
 def generate_host_file(nametype, privaddrs=private_ips, pubaddrs=public_ips,
-                       make_local=False, no_zero=False):
-    # Construct a string that generates a host file with the desired host
-    # nametype, followed by the private IP.
-    length = len(privaddrs)
-    count = []
-    for each in list(range(length)):
-        if no_zero == True:
-            count.append(each+1)
-        else:
-            count.append(each)
-    d = dict(zip(count, privaddrs))
-    logging.info('Generating a host file for remote hosts')
-    for key, value in d.iteritems():
-        logging.info('appending host {0}{1} {2}'.format(nametype, key, value))
-        host_file_string = "\n{0} {1}{2}".format(value, nametype, key)
-        f = open("tmp_host_file", "a+")
-        f.write(host_file_string)
-    f.close()
-    # If make_local is set, also make a /etc/hosts file for the local host
+                       make_local=False, make_local_only=False, no_zero=False):
+    if make_local_only == True:
+        pass
+    else:
+        # Construct a string that generates a host file with the desired host
+        # nametype, followed by the private IP.
+        length = len(privaddrs)
+        count = []
+        for each in list(range(length)):
+            if no_zero == True:
+                count.append(each+1)
+            else:
+                count.append(each)
+        d = dict(zip(count, privaddrs))
+        logging.info('Generating a host file for remote hosts')
+        for key, value in d.iteritems():
+            logging.info('appending host {0}{1} {2}'.format(nametype, key, value))
+            host_file_string = "\n{0} {1}{2}".format(value, nametype, key)
+            f = open("tmp_host_file", "a+")
+            f.write(host_file_string)
+        f.close()
+        # If make_local is set, also make a /etc/hosts file for the local host
     if make_local == True:
         logging.info('make-local flag detected, appending a local /etc/hosts \
 file which contains public IP addresses')
@@ -112,7 +115,7 @@ def copy_host_files(keyfile, user, pubaddrs=public_ips):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     logging.info('Copying host files to remote hosts')
     # Use a specific user to connect
-    # This provides support for additional users outside of the docker lab 
+    # This provides support for additional users outside of the docker lab
     logging.info('Using user {0} to connect'.format(user))
     for each in pubaddrs:
         logging.debug('copying host file to {0}'.format(each))
@@ -151,8 +154,7 @@ def main():
                         dest="ssh_identity_file",
                         help="Specify the location where your SSH identity \
                         file resides for AWS (normally in your train \
-                        directory).",
-                        required=True)
+                        directory).")
     parser.add_argument("-f",
                         dest="env_file",
                         help="Specify the location/name of the environment.txt \
@@ -172,6 +174,12 @@ def main():
                         help="Add entries to the hosts in your local \
                         /etc/hosts file (requires root) using the public IP's \
                         for each host.")
+    parser.add_argument("--make-local-only",
+                        dest="make_local_only",
+                        action="store_true",
+                        help="Same behavior as --make-local without remote \
+                        edits to host files.  Should be used in place of \
+                        --make-local.")
     parser.add_argument("--no-zero",
                         dest="no_zero",
                         action="store_true",
@@ -184,7 +192,7 @@ def main():
                         "--debug",
                         dest="debug",
                         action="store_true",
-                        help="Enable debug logging.")
+                        help="Enable debugging")
 
 
     args = parser.parse_args()
@@ -201,10 +209,25 @@ def main():
                             level=logging.DEBUG
                             )
 
+    # Ensure that both make-local flags are not passed
+    if args.make_local and args.make_local_only == True:
+        logging.error('Use either --make-local or --make-local-only, not both!')
+        sys.exit(1)
+
     # Check for root early if make-local is used
-    if args.make_local == True:
+    if args.make_local or args.make_local_only == True:
         if not os.geteuid() == 0:
             logging.error('You must be root to use the make-local flag!')
+            sys.exit(1)
+
+    # Check for ssh identity file
+    if args.make_local_only != True:
+        if args.ssh_identity_file == None:
+            logging.error("""usage: make_host_file.py [-h] [-N NAMETYPE]
+-i SSH_IDENTITY_FILE -f ENV_FILE [-u USER] [--make-local] [--no-zero] [-D]
+argument -i is required.
+"""
+            )
             sys.exit(1)
 
     # Generate host list
@@ -223,8 +246,18 @@ def main():
     else:
         logging.info('-N detected, using user set nametype')
         nametype = args.nametype
+
     # announce the nametype we'll use
     logging.info("Will use name: {0}".format(nametype))
+
+    # Generate host files, cleanup and exit for make-local-only
+    if args.make_local_only == True:
+        logging.info("--make-local-only detected. Creating local hosts file \
+entries only!")
+        generate_host_file(nametype, make_local=True, make_local_only=True,
+                           no_zero=args.no_zero)
+        logging.info("All tasks complete.")
+        sys.exit(0)
 
     # Generate a hosts file
     if args.make_local == True:
@@ -235,7 +268,7 @@ def main():
     # Copy remote hosts
     copy_host_files(args.ssh_identity_file, user)
 
-    # cleanup
+    # Cleanup tmp_host_file used for remote host editing
     cleanup_tmp()
 
     # Tell users we're done

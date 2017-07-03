@@ -40,14 +40,19 @@ optional arguments:
                         AWS creates for login.
   --make-local          Add entries to the hosts in your local /etc/hosts file
                         (requires root) using the public IP's for each host.
+  --make-local-only     Same behavior as --make-local without remote edits to
+                        host files. Should be used in place of --make-local.                        
   --no-zero             Do not start hostname count from 0, start from 1
                         instead. For example, with --no-zero hosts will be
                         named 'docker1, docker2, etc.' By default host naming
                         will follow the train.env naming convention which is
                         'docker0, docker1, etc.'
+  -D, --debug           Enable debugging.
+
 required arguments:
   -i SSH_IDENTITY_FILE  Specify the location where your SSH identity file
                         resides for AWS (normally in your train directory).
+                        Not required when `--make-local-only` flag is used.
   -f ENV_FILE           Specify the location/name of the environment.txt file
                         found inside of your train directory. This is used to
                         read IP's of the hosts.
