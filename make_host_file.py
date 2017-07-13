@@ -118,7 +118,7 @@ def copy_host_files(keyfile, user, pubaddrs=public_ips):
     # This provides support for additional users outside of the docker lab
     logging.info('Using user {0} to connect'.format(user))
     for each in pubaddrs:
-        logging.debug('copying host file to {0}'.format(each))
+        logging.info('copying host file to {0}'.format(each))
         ssh.connect(
                     each,
                     username="{0}".format(user),
