@@ -58,6 +58,7 @@ Generate host files for train env, syntax will match that of the env.txt file
 """
 def generate_host_file(nametype, privaddrs=private_ips, pubaddrs=public_ips,
                        make_local=False, make_local_only=False, no_zero=False):
+    # If make_local_only is True don't create a remote host file
     if make_local_only == True:
         pass
     else:
@@ -91,8 +92,9 @@ file which contains public IP addresses')
                 count.append(each+1)
             else:
                 count.append(each)
-        d = dict(zip(count, pubaddrs))
-        for key, value in d.iteritems():
+        # Buid a different dict for pubaddrs
+        t = dict(zip(count, pubaddrs))
+        for key, value in t.iteritems():
             logging.info('appending host locally {0}{1} {2}'.format(nametype,
                                                                     key,
                                                                     value))
