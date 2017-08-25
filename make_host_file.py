@@ -28,11 +28,15 @@ def host_list(env_file):
     f.close()
     pattern = '[\n\r].*IP:\\s*([^\n\r]*)'
     all_ips = re.findall(pattern, env_details)
+    logging.debug("IP list built: {0}".format(str(all_ips)))
     # Filter ips into associate private and public lists
+    logging.debug("Starting IP sort")
     for each in all_ips:
-        if each.startswith("10.0"):
+        if each.startswith('10.'):
+            logging.debug("appending {0} to private_ips list".format(each))
             private_ips.append(each)
         else:
+            logging.debug("appending {0} to public_ips list".format(each))
             public_ips.append(each)
 
 """
@@ -73,10 +77,10 @@ def generate_host_file(nametype, privaddrs=private_ips, pubaddrs=public_ips,
                 count.append(each)
         d = dict(zip(count, privaddrs))
         logging.info('Generating a host file for remote hosts')
+        f = open("tmp_host_file", "a+")
         for key, value in d.iteritems():
             logging.info('appending host {0}{1} {2}'.format(nametype, key, value))
             host_file_string = "\n{0} {1}{2}".format(value, nametype, key)
-            f = open("tmp_host_file", "a+")
             f.write(host_file_string)
         f.close()
         # If make_local is set, also make a /etc/hosts file for the local host
