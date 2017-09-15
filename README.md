@@ -57,3 +57,8 @@ required arguments:
                         found inside of your train directory. This is used to
                         read IP's of the hosts.
 ~~~
+
+## TODOs
+* Use given name for each host as default nametype, still allow user to
+  override, but add a warning that states to update SANs if UCP will be used.
+* Implement `argcomplete` for argument bash completion.
